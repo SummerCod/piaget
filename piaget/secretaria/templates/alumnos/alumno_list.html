@@ -7,7 +7,7 @@
 </head>
 <body>
     <div class="container mt-4">
-        
+        <!-- Header con título y botones -->
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1 class="mb-0">
                 <i class="bi bi-people-fill"></i> Lista de Alumnos
@@ -17,15 +17,74 @@
             </a>
         </div>
 
-        
+        <!-- Filtro de Búsqueda -->
+        <div class="card mb-4">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-search"></i> Buscar Alumnos
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="get" action="{% url 'alumno_list' %}" class="row g-3">
+                    <div class="col-md-3">
+                        <label for="dni" class="form-label">DNI</label>
+                        <input type="number" class="form-control" id="dni" name="dni" 
+                               value="{{ request.GET.dni }}" placeholder="Buscar por DNI"
+                               min="1000000" max="99999999">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="nombre" class="form-label">Nombre</label>
+                        <input type="text" class="form-control" id="nombre" name="nombre" 
+                               value="{{ request.GET.nombre }}" placeholder="Buscar por nombre">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="apellido" class="form-label">Apellido</label>
+                        <input type="text" class="form-control" id="apellido" name="apellido" 
+                               value="{{ request.GET.apellido }}" placeholder="Buscar por apellido">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label d-block">&nbsp;</label>
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="bi bi-search"></i> Buscar
+                        </button>
+                        <a href="{% url 'alumno_list' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle"></i> Limpiar
+                        </a>
+                    </div>
+                </form>
+                
+                {% if request.GET.dni or request.GET.nombre or request.GET.apellido %}
+                <div class="mt-3">
+                    <span class="badge bg-info">
+                        Filtros aplicados: 
+                        {% if request.GET.dni %}DNI: {{ request.GET.dni }}{% endif %}
+                        {% if request.GET.nombre %}Nombre: {{ request.GET.nombre }}{% endif %}
+                        {% if request.GET.apellido %}Apellido: {{ request.GET.apellido }}{% endif %}
+                    </span>
+                    <span class="badge bg-secondary ms-2">
+                        Resultados: {{ alumnos.paginator.count }}
+                    </span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Tarjeta de contenido -->
         <div class="card shadow-sm">
             <div class="card-header bg-light">
                 <div class="row align-items-center">
                     <div class="col-md-6">
-                        <h5 class="card-title mb-0">Total de alumnos por pagina: {{ alumnos|length }}</h5>
+                        <h5 class="card-title mb-0">
+                            Total de alumnos: {{ alumnos.paginator.count }}
+                            {% if is_filtered %}(Filtrados){% endif %}
+                        </h5>
                     </div>
                     <div class="col-md-6 text-end">
-                        <!-- Acá pienso agregar los filtros -->
+                        {% if is_filtered %}
+                        <a href="{% url 'alumno_list' %}" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-arrow-counterclockwise"></i> Ver todos
+                        </a>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -100,11 +159,28 @@
                                 <td colspan="7" class="text-center py-4">
                                     <div class="text-muted">
                                         <i class="bi bi-people display-4"></i>
-                                        <h5 class="mt-3">No hay alumnos registrados</h5>
-                                        <p>Comience agregando un nuevo alumno</p>
+                                        <h5 class="mt-3">
+                                            {% if is_filtered %}
+                                            No se encontraron alumnos con los filtros aplicados
+                                            {% else %}
+                                            No hay alumnos registrados
+                                            {% endif %}
+                                        </h5>
+                                        <p>
+                                            {% if is_filtered %}
+                                            Intenta con otros criterios de búsqueda
+                                            {% else %}
+                                            Comience agregando un nuevo alumno
+                                            {% endif %}
+                                        </p>
                                         <a href="{% url 'alumno_create' %}" class="btn btn-primary mt-2">
-                                            <i class="bi bi-plus-circle"></i> Agregar Primer Alumno
+                                            <i class="bi bi-plus-circle"></i> Agregar Alumno
                                         </a>
+                                        {% if is_filtered %}
+                                        <a href="{% url 'alumno_list' %}" class="btn btn-outline-secondary mt-2">
+                                            <i class="bi bi-arrow-counterclockwise"></i> Ver todos
+                                        </a>
+                                        {% endif %}
                                     </div>
                                 </td>
                             </tr>
@@ -113,18 +189,18 @@
                     </table>
                 </div>
 
-                <!--ola pagina -->
+                <!-- Paginación -->
                 {% if is_paginated %}
                 <nav aria-label="Page navigation" class="mt-4">
                     <ul class="pagination justify-content-center">
                         {% if page_obj.has_previous %}
                         <li class="page-item">
-                            <a class="page-link" href="?page=1" aria-label="First">
+                            <a class="page-link" href="?{% if query_string %}{{ query_string }}&{% endif %}page=1" aria-label="First">
                                 <span aria-hidden="true">&laquo;&laquo;</span>
                             </a>
                         </li>
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="Previous">
+                            <a class="page-link" href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.previous_page_number }}" aria-label="Previous">
                                 <span aria-hidden="true">&laquo;</span>
                             </a>
                         </li>
@@ -137,19 +213,19 @@
                             </li>
                             {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
                             <li class="page-item">
-                                <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                                <a class="page-link" href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ num }}">{{ num }}</a>
                             </li>
                             {% endif %}
                         {% endfor %}
 
                         {% if page_obj.has_next %}
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="Next">
+                            <a class="page-link" href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.next_page_number }}" aria-label="Next">
                                 <span aria-hidden="true">&raquo;</span>
                             </a>
                         </li>
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}" aria-label="Last">
+                            <a class="page-link" href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.paginator.num_pages }}" aria-label="Last">
                                 <span aria-hidden="true">&raquo;&raquo;</span>
                             </a>
                         </li>
@@ -161,7 +237,6 @@
         </div>
     </div>
 
-    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <style>
@@ -190,12 +265,14 @@
         .pagination {
             margin-bottom: 0;
         }
+        .form-label {
+            font-weight: 500;
+        }
     </style>
 
     <script>
-        
         document.addEventListener('DOMContentLoaded', function() {
-            
+            // Confirmación para eliminar
             const deleteButtons = document.querySelectorAll('.btn-outline-danger');
             deleteButtons.forEach(button => {
                 button.addEventListener('click', function(e) {
@@ -205,10 +282,18 @@
                 });
             });
 
-            
+            // Tooltips para botones
             const tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
             tooltipTriggerList.map(function (tooltipTriggerEl) {
                 return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+
+            // Limpiar filtros individuales
+            document.querySelectorAll('.btn-clear-filter').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const field = this.dataset.field;
+                    document.querySelector(`#${field}`).value = '';
+                });
             });
         });
     </script>
