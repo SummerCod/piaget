@@ -11,6 +11,41 @@ class AlumnoListView(ListView):
     context_object_name = 'alumnos'
     paginate_by = 10
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        
+        
+        dni = self.request.GET.get('dni')
+        nombre = self.request.GET.get('nombre')
+        apellido = self.request.GET.get('apellido')
+        
+        
+        if dni:
+            queryset = queryset.filter(dni_alumno__icontains=dni)
+        if nombre:
+            queryset = queryset.filter(nombre_alumno__icontains=nombre)
+        if apellido:
+            queryset = queryset.filter(apellido_alumno__icontains=apellido)
+        
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        context['is_filtered'] = any([
+            self.request.GET.get('dni'),
+            self.request.GET.get('nombre'),
+            self.request.GET.get('apellido')
+        ])
+        
+        query_string = ''
+        for key, value in self.request.GET.items():
+            if key != 'page' and value:
+                query_string += f'{key}={value}&'
+        context['query_string'] = query_string.rstrip('&')
+        
+        return context
+
 class AlumnoCreateView(CreateView):
     model = Alumno
     form_class = AlumnoForm
